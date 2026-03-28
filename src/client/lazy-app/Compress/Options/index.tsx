@@ -1,4 +1,4 @@
-import { h, Component } from 'preact';
+import { h, Component, Fragment } from 'preact';
 
 import * as style from './style.module.css';
 import './style.module.css';
@@ -16,7 +16,7 @@ import Expander from './Expander';
 import Toggle from './Toggle';
 import Select from './Select';
 import { Options as ResizeOptionsComponent } from 'features/processors/resize/client';
-import { ImportIcon, SaveIcon, SwapIcon } from 'client/lazy-app/icons';
+import { ImportIcon, SaveIcon } from 'client/lazy-app/icons';
 
 interface Props {
   index: 0 | 1;
@@ -27,7 +27,6 @@ interface Props {
   onEncoderTypeChange(index: 0 | 1, newType: OutputType): void;
   onEncoderOptionsChange(index: 0 | 1, newOptions: EncoderOptions): void;
   onProcessorOptionsChange(index: 0 | 1, newOptions: ProcessorState): void;
-  onCopyToOtherSideClick(index: 0 | 1): void;
   onSaveSideSettingsClick(index: 0 | 1): void;
   onImportSideSettingsClick(index: 0 | 1): void;
 }
@@ -127,10 +126,6 @@ export default class Options extends Component<Props, State> {
     this.props.onEncoderOptionsChange(this.props.index, newOptions);
   };
 
-  private onCopyToOtherSideClick = () => {
-    this.props.onCopyToOtherSideClick(this.props.index);
-  };
-
   private onSaveSideSettingClick = () => {
     this.props.onSaveSideSettingsClick(this.props.index);
   };
@@ -140,9 +135,10 @@ export default class Options extends Component<Props, State> {
   };
 
   render(
-    { source, encoderState, processorState }: Props,
+    { source, encoderState, processorState, index }: Props,
     { supportedEncoderMap }: State,
   ) {
+    const isOriginalSide = index === 0;
     const encoder = encoderState && encoderMap[encoderState.type];
     const EncoderOptionComponent =
       encoder && 'Options' in encoder ? encoder.Options : undefined;
@@ -152,112 +148,122 @@ export default class Options extends Component<Props, State> {
         class={
           style.optionsScroller +
           ' ' +
-          (encoderState ? '' : style.originalImage)
+          (isOriginalSide || !encoderState ? style.originalImage : '')
         }
       >
-        <Expander>
-          {!encoderState ? null : (
-            <div>
-              <h3 class={style.optionsTitle}>
-                <div class={style.titleAndButtons}>
-                  Edit
-                  <button
-                    class={style.copyOverButton}
-                    title="Copy settings to other side"
-                    onClick={this.onCopyToOtherSideClick}
-                  >
-                    <SwapIcon />
-                  </button>
-                  <button
-                    class={style.saveButton}
-                    title="Save side settings"
-                    onClick={this.onSaveSideSettingClick}
-                  >
-                    <SaveIcon />
-                  </button>
-                  <button
-                    class={
-                      style.importButton +
-                      ' ' +
-                      (!this.state.leftSideSettings && this.props.index === 0
-                        ? style.buttonOpacity
-                        : '') +
-                      ' ' +
-                      (!this.state.rightSideSettings && this.props.index === 1
-                        ? style.buttonOpacity
-                        : '')
-                    }
-                    title="Import saved side settings"
-                    onClick={this.onImportSideSettingsClick}
-                    disabled={
-                      // Disabled if this side's settings haven't been saved
-                      (!this.state.leftSideSettings &&
-                        this.props.index === 0) ||
-                      (!this.state.rightSideSettings && this.props.index === 1)
-                    }
-                  >
-                    <ImportIcon />
-                  </button>
+        {isOriginalSide ? (
+          <>
+            <h3 class={style.optionsTitle}>Original</h3>
+
+            <section class={`${style.optionOneCell} ${style.optionsSection}`}>
+              {source ? source.file.name : 'Original image'}
+            </section>
+          </>
+        ) : (
+          <>
+            <Expander>
+              {!encoderState ? null : (
+                <div>
+                  <h3 class={style.optionsTitle}>
+                    <div class={style.titleAndButtons}>
+                      Edit
+                      <button
+                        class={style.saveButton}
+                        title="Save side settings"
+                        onClick={this.onSaveSideSettingClick}
+                      >
+                        <SaveIcon />
+                      </button>
+                      <button
+                        class={
+                          style.importButton +
+                          ' ' +
+                          (!this.state.leftSideSettings &&
+                          this.props.index === 0
+                            ? style.buttonOpacity
+                            : '') +
+                          ' ' +
+                          (!this.state.rightSideSettings &&
+                          this.props.index === 1
+                            ? style.buttonOpacity
+                            : '')
+                        }
+                        title="Import saved side settings"
+                        onClick={this.onImportSideSettingsClick}
+                        disabled={
+                          // Disabled if this side's settings haven't been saved
+                          (!this.state.leftSideSettings &&
+                            this.props.index === 0) ||
+                          (!this.state.rightSideSettings &&
+                            this.props.index === 1)
+                        }
+                      >
+                        <ImportIcon />
+                      </button>
+                    </div>
+                  </h3>
+                  <label class={style.sectionEnabler}>
+                    Resize
+                    <Toggle
+                      name="resize.enable"
+                      checked={!!processorState.resize.enabled}
+                      onChange={this.onProcessorEnabledChange}
+                    />
+                  </label>
+                  <Expander>
+                    {processorState.resize.enabled ? (
+                      <ResizeOptionsComponent
+                        isVector={Boolean(source && source.vectorImage)}
+                        inputWidth={source ? source.preprocessed.width : 1}
+                        inputHeight={source ? source.preprocessed.height : 1}
+                        options={processorState.resize}
+                        onChange={this.onResizeOptionsChange}
+                      />
+                    ) : null}
+                  </Expander>
                 </div>
-              </h3>
-              <label class={style.sectionEnabler}>
-                Resize
-                <Toggle
-                  name="resize.enable"
-                  checked={!!processorState.resize.enabled}
-                  onChange={this.onProcessorEnabledChange}
+              )}
+            </Expander>
+
+            <h3 class={style.optionsTitle}>Compress</h3>
+
+            <section class={`${style.optionOneCell} ${style.optionsSection}`}>
+              {supportedEncoderMap ? (
+                <Select
+                  value={encoderState ? encoderState.type : 'identity'}
+                  onChange={this.onEncoderTypeChange}
+                  large
+                >
+                  <option value="identity">{`Original Image ${
+                    this.props.source ? `(${this.props.source.file.name})` : ''
+                  }`}</option>
+                  {Object.entries(supportedEncoderMap).map(
+                    ([type, encoder]) => (
+                      <option value={type}>{encoder.meta.label}</option>
+                    ),
+                  )}
+                </Select>
+              ) : (
+                <Select large>
+                  <option>Loading…</option>
+                </Select>
+              )}
+            </section>
+
+            <Expander>
+              {EncoderOptionComponent && (
+                <EncoderOptionComponent
+                  options={
+                    // Casting options, as encoderOptionsComponentMap[encodeData.type] ensures
+                    // the correct type, but typescript isn't smart enough.
+                    encoderState!.options as any
+                  }
+                  onChange={this.onEncoderOptionsChange}
                 />
-              </label>
-              <Expander>
-                {processorState.resize.enabled ? (
-                  <ResizeOptionsComponent
-                    isVector={Boolean(source && source.vectorImage)}
-                    inputWidth={source ? source.preprocessed.width : 1}
-                    inputHeight={source ? source.preprocessed.height : 1}
-                    options={processorState.resize}
-                    onChange={this.onResizeOptionsChange}
-                  />
-                ) : null}
-              </Expander>
-            </div>
-          )}
-        </Expander>
-
-        <h3 class={style.optionsTitle}>Compress</h3>
-
-        <section class={`${style.optionOneCell} ${style.optionsSection}`}>
-          {supportedEncoderMap ? (
-            <Select
-              value={encoderState ? encoderState.type : 'identity'}
-              onChange={this.onEncoderTypeChange}
-              large
-            >
-              <option value="identity">{`Original Image ${
-                this.props.source ? `(${this.props.source.file.name})` : ''
-              }`}</option>
-              {Object.entries(supportedEncoderMap).map(([type, encoder]) => (
-                <option value={type}>{encoder.meta.label}</option>
-              ))}
-            </Select>
-          ) : (
-            <Select large>
-              <option>Loading…</option>
-            </Select>
-          )}
-        </section>
-
-        <Expander>
-          {EncoderOptionComponent && (
-            <EncoderOptionComponent
-              options={
-                // Casting options, as encoderOptionsComponentMap[encodeData.type] ensures
-                // the correct type, but typescript isn't smart enough.
-                encoderState!.options as any
-              }
-              onChange={this.onEncoderOptionsChange}
-            />
-          )}
-        </Expander>
+              )}
+            </Expander>
+          </>
+        )}
       </div>
     );
   }

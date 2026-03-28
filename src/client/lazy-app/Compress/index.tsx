@@ -288,7 +288,15 @@ function parseSavedSideSettings(storedValue: string) {
 function loadSavedSideSettings(
   fallback: SideSettings,
   storageKey: string,
+  { forceOriginal = false }: { forceOriginal?: boolean } = {},
 ): Side {
+  if (forceOriginal) {
+    return {
+      latestSettings: fallback,
+      loading: false,
+    };
+  }
+
   const storedValue = localStorage.getItem(storageKey);
 
   if (!storedValue) {
@@ -349,7 +357,9 @@ export default class Compress extends Component<Props, State> {
     preprocessorState: defaultPreprocessorState,
     // Tasking catched side settings if available otherwise taking default settings
     sides: [
-      loadSavedSideSettings(this.defaultLeftSideSettings, 'leftSideSettings'),
+      loadSavedSideSettings(this.defaultLeftSideSettings, 'leftSideSettings', {
+        forceOriginal: true,
+      }),
       loadSavedSideSettings(this.defaultRightSideSettings, 'rightSideSettings'),
     ],
     mobileView: this.widthQuery.matches,
@@ -379,6 +389,8 @@ export default class Compress extends Component<Props, State> {
   };
 
   private onEncoderTypeChange = (index: 0 | 1, newType: OutputType): void => {
+    if (index === 0) return;
+
     this.setState({
       sides: cleanSet(
         this.state.sides,
@@ -397,6 +409,8 @@ export default class Compress extends Component<Props, State> {
     index: 0 | 1,
     options: ProcessorState,
   ): void => {
+    if (index === 0) return;
+
     this.setState({
       sides: cleanSet(
         this.state.sides,
@@ -410,6 +424,8 @@ export default class Compress extends Component<Props, State> {
     index: 0 | 1,
     options: EncoderOptions,
   ): void => {
+    if (index === 0) return;
+
     this.setState({
       sides: cleanSet(
         this.state.sides,
@@ -454,32 +470,6 @@ export default class Compress extends Component<Props, State> {
     this.queueUpdateImage();
   }
 
-  private onCopyToOtherClick = async (index: 0 | 1) => {
-    const otherIndex = index ? 0 : 1;
-    const oldSettings = this.state.sides[otherIndex];
-    const newSettings = { ...this.state.sides[index] };
-
-    // Create a new object URL for the new settings. This avoids both sides sharing a URL, which
-    // means it can be safely revoked without impacting the other side.
-    if (newSettings.file) {
-      newSettings.downloadUrl = URL.createObjectURL(newSettings.file);
-    }
-
-    this.setState({
-      sides: cleanSet(this.state.sides, otherIndex, newSettings),
-    });
-
-    const result = await this.props.showSnack('Settings copied across', {
-      timeout: 5000,
-      actions: ['undo', 'dismiss'],
-    });
-
-    if (result !== 'undo') return;
-
-    this.setState({
-      sides: cleanSet(this.state.sides, otherIndex, oldSettings),
-    });
-  };
   /**
    * This function saves encodedSettings and latestSettings of
    * particular side in browser local storage
@@ -487,20 +477,7 @@ export default class Compress extends Component<Props, State> {
    * @returns
    */
   private onSaveSideSettingsClick = async (index: 0 | 1) => {
-    if (index === 0) {
-      const leftSideSettings = JSON.stringify({
-        encodedSettings: this.state.sides[index].encodedSettings,
-        latestSettings: this.state.sides[index].latestSettings,
-      });
-      localStorage.setItem('leftSideSettings', leftSideSettings);
-      // Firing an event when we save side settings in localstorage
-      window.dispatchEvent(new CustomEvent('leftSideSettings'));
-      await this.props.showSnack('Left side settings saved', {
-        timeout: 1500,
-        actions: ['dismiss'],
-      });
-      return;
-    }
+    if (index === 0) return;
 
     if (index === 1) {
       const rightSideSettings = JSON.stringify({
@@ -525,37 +502,9 @@ export default class Compress extends Component<Props, State> {
    * @returns
    */
   private onImportSideSettingsClick = async (index: 0 | 1) => {
-    const leftSideSettingsString = localStorage.getItem('leftSideSettings');
-    const rightSideSettingsString = localStorage.getItem('rightSideSettings');
+    if (index === 0) return;
 
-    if (index === 0 && leftSideSettingsString) {
-      const oldLeftSideSettings = this.state.sides[index];
-      const importedLeftSettings = parseSavedSideSettings(
-        leftSideSettingsString,
-      );
-      const newLeftSideSettings = {
-        ...this.state.sides[index],
-        encodedSettings: normalizeSideSettings(
-          importedLeftSettings.encodedSettings,
-        ),
-        latestSettings:
-          normalizeSideSettings(importedLeftSettings.latestSettings) ??
-          this.defaultLeftSideSettings,
-      };
-      this.setState({
-        sides: cleanSet(this.state.sides, index, newLeftSideSettings),
-      });
-      const result = await this.props.showSnack('Left side settings imported', {
-        timeout: 3000,
-        actions: ['undo', 'dismiss'],
-      });
-      if (result === 'undo') {
-        this.setState({
-          sides: cleanSet(this.state.sides, index, oldLeftSideSettings),
-        });
-      }
-      return;
-    }
+    const rightSideSettingsString = localStorage.getItem('rightSideSettings');
 
     if (index === 1 && rightSideSettingsString) {
       const oldRightSideSettings = this.state.sides[index];
@@ -989,7 +938,6 @@ export default class Compress extends Component<Props, State> {
         onEncoderTypeChange={this.onEncoderTypeChange}
         onEncoderOptionsChange={this.onEncoderOptionsChange}
         onProcessorOptionsChange={this.onProcessorOptionsChange}
-        onCopyToOtherSideClick={this.onCopyToOtherClick}
         onSaveSideSettingsClick={this.onSaveSideSettingsClick}
         onImportSideSettingsClick={this.onImportSideSettingsClick}
       />
@@ -1003,7 +951,9 @@ export default class Compress extends Component<Props, State> {
         loading={loading || side.loading}
         flipSide={mobileView || index === 1}
         typeLabel={
-          side.latestSettings.encoderState
+          index === 0
+            ? 'Original'
+            : side.latestSettings.encoderState
             ? encoderMap[side.latestSettings.encoderState.type].meta.label
             : `${side.file ? `${side.file.name}` : 'Original Image'}`
         }

@@ -26,6 +26,7 @@ import { linkRef } from 'shared/prerendered-app/util';
 import Select from 'client/lazy-app/Compress/Options/Select';
 import Expander from 'client/lazy-app/Compress/Options/Expander';
 import Checkbox from 'client/lazy-app/Compress/Options/Checkbox';
+import Revealer from 'client/lazy-app/Compress/Options/Revealer';
 
 /**
  * Return whether a set of options are worker resize options.
@@ -107,6 +108,7 @@ interface Props {
 
 interface State {
   maintainAspect: boolean;
+  showAdvanced: boolean;
 }
 
 const sizePresets = [0.25, 0.3333, 0.5, 1, 2, 3, 4];
@@ -114,6 +116,7 @@ const sizePresets = [0.25, 0.3333, 0.5, 1, 2, 3, 4];
 export class Options extends Component<Props, State> {
   state: State = {
     maintainAspect: true,
+    showAdvanced: false,
   };
 
   private form?: HTMLFormElement;
@@ -137,8 +140,14 @@ export class Options extends Component<Props, State> {
       width: inputFieldValueAsNumber(width),
       height: inputFieldValueAsNumber(height),
       method: form.resizeMethod.value,
-      premultiply: inputFieldChecked(form.premultiply, true),
-      linearRGB: inputFieldChecked(form.linearRGB, true),
+      premultiply: inputFieldChecked(
+        form.premultiply,
+        isWorkerOptions(options) ? options.premultiply : true,
+      ),
+      linearRGB: inputFieldChecked(
+        form.linearRGB,
+        isWorkerOptions(options) ? options.linearRGB : true,
+      ),
       // Casting, as the formfield only returns the correct values.
       fitMethod: inputFieldValue(
         form.fitMethod,
@@ -224,7 +233,10 @@ export class Options extends Component<Props, State> {
     this.reportOptions();
   };
 
-  render({ options, isVector }: Props, { maintainAspect }: State) {
+  render(
+    { options, isVector }: Props,
+    { maintainAspect, showAdvanced }: State,
+  ) {
     return (
       <form
         ref={linkRef(this, 'form')}
@@ -283,50 +295,61 @@ export class Options extends Component<Props, State> {
             onInput={this.onHeightInput}
           />
         </label>
-        <Expander>
-          {isWorkerOptions(options) ? (
-            <label class={style.optionToggle}>
-              Premultiply alpha channel
-              <Checkbox
-                name="premultiply"
-                checked={options.premultiply}
-                onChange={this.onChange}
-              />
-            </label>
-          ) : null}
-          {isWorkerOptions(options) ? (
-            <label class={style.optionToggle}>
-              Linear RGB
-              <Checkbox
-                name="linearRGB"
-                checked={options.linearRGB}
-                onChange={this.onChange}
-              />
-            </label>
-          ) : null}
-        </Expander>
-        <label class={style.optionToggle}>
-          Maintain aspect ratio
-          <Checkbox
-            name="maintainAspect"
-            checked={maintainAspect}
-            onChange={linkState(this, 'maintainAspect')}
+        <label class={style.optionReveal}>
+          <Revealer
+            checked={showAdvanced}
+            onChange={linkState(this, 'showAdvanced')}
           />
+          Advanced settings
         </label>
         <Expander>
-          {maintainAspect ? null : (
-            <label class={style.optionTextFirst}>
-              Fit method:
-              <Select
-                name="fitMethod"
-                value={options.fitMethod}
-                onChange={this.onChange}
-              >
-                <option value="stretch">Stretch</option>
-                <option value="contain">Contain</option>
-              </Select>
-            </label>
-          )}
+          {showAdvanced ? (
+            <div>
+              <label class={style.optionToggle}>
+                Maintain aspect ratio
+                <Checkbox
+                  name="maintainAspect"
+                  checked={maintainAspect}
+                  onChange={linkState(this, 'maintainAspect')}
+                />
+              </label>
+              {isWorkerOptions(options) ? (
+                <label class={style.optionToggle}>
+                  Premultiply alpha channel
+                  <Checkbox
+                    name="premultiply"
+                    checked={options.premultiply}
+                    onChange={this.onChange}
+                  />
+                </label>
+              ) : null}
+              {isWorkerOptions(options) ? (
+                <label class={style.optionToggle}>
+                  Linear RGB
+                  <Checkbox
+                    name="linearRGB"
+                    checked={options.linearRGB}
+                    onChange={this.onChange}
+                  />
+                </label>
+              ) : null}
+              <Expander>
+                {maintainAspect ? null : (
+                  <label class={style.optionTextFirst}>
+                    Fit method:
+                    <Select
+                      name="fitMethod"
+                      value={options.fitMethod}
+                      onChange={this.onChange}
+                    >
+                      <option value="stretch">Stretch</option>
+                      <option value="contain">Contain</option>
+                    </Select>
+                  </label>
+                )}
+              </Expander>
+            </div>
+          ) : null}
         </Expander>
       </form>
     );
