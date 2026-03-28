@@ -20,6 +20,7 @@
     "husky": "^7.0.2",
     "idb-keyval": "^3.2.0",
     "image-size": "^0.9.3",
+    "jszip": "^3.10.1",
     "linkstate": "^2.0.0",
     "lint-staged": "^10.5.1",
     "lodash.camelcase": "^4.3.0",

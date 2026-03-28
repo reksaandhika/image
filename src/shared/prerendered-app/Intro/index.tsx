@@ -20,6 +20,7 @@ async function getImageClipboardItem(
 
 interface Props {
   onFile?: (file: File) => void;
+  onFiles?: (files: File[]) => void;
   showSnack?: SnackBarElement['showSnackbar'];
 }
 interface State {
@@ -52,10 +53,16 @@ export default class Intro extends Component<Props, State> {
 
   private onFileChange = (event: Event): void => {
     const fileInput = event.target as HTMLInputElement;
-    const file = fileInput.files && fileInput.files[0];
-    if (!file) return;
+    if (!fileInput.files || fileInput.files.length === 0) return;
+
+    const files = Array.from(fileInput.files);
     this.fileInput!.value = '';
-    this.props.onFile!(file);
+
+    if (files.length > 1 && this.props.onFiles) {
+      this.props.onFiles(files);
+    } else {
+      this.props.onFile!(files[0]);
+    }
   };
 
   private onOpenClick = () => {
@@ -148,6 +155,7 @@ export default class Intro extends Component<Props, State> {
           class={style.hide}
           ref={linkRef(this, 'fileInput')}
           type="file"
+          multiple
           onChange={this.onFileChange}
         />
         <main class={style.main}>
@@ -170,7 +178,7 @@ export default class Intro extends Component<Props, State> {
                 <svg viewBox="0 0 24 24" class={style.loadIcon}>
                   <path d="M19 7v3h-2V7h-3V5h3V2h2v3h3v2h-3zm-3 4V8h-3V5H5a2 2 0 00-2 2v12c0 1.1.9 2 2 2h12a2 2 0 002-2v-8h-3zM5 19l3-4 2 3 3-4 4 5H5z" />
                 </svg>
-                <span class={style.loadBtnText}>Upload image</span>
+                <span class={style.loadBtnText}>Upload image(s)</span>
               </button>
               <p class={style.actionText}>
                 Drag and drop an image here or{' '}
