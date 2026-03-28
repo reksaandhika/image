@@ -40,6 +40,8 @@ export default defineConfig(({ mode }) => ({
         globDirectory: path.resolve(__dirname, 'build'),
         globPatterns: ['**/*.{js,mjs,css,wasm,html}'],
         globIgnores: ['serviceworker.js'],
+        // AVIF encoder wasm bundles are >2 MiB.
+        maximumFileSizeToCacheInBytes: 6 * 1024 * 1024,
       },
     }),
   ],

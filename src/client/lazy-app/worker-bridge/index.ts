@@ -6,7 +6,7 @@ import { abortable } from '../util';
 /** How long the worker should be idle before terminating. */
 const workerTimeout = 10_000;
 /** Upper bound for a single worker RPC. */
-const operationTimeout = 120_000;
+const operationTimeout = 30_000;
 
 interface WorkerBridge extends BridgeMethods {}
 
@@ -17,7 +17,7 @@ class WorkerBridge {
   /** Comlinked worker API. */
   protected _workerApi?: ProcessorWorkerApi;
   /** ID from setTimeout */
-  protected _workerTimeout?: number;
+  protected _workerTimeout?: ReturnType<typeof setTimeout>;
 
   protected _withOperationTimeout<T>(promise: Promise<T>): Promise<T> {
     return new Promise<T>((resolve, reject) => {
@@ -47,11 +47,10 @@ class WorkerBridge {
   }
 
   protected _startWorker() {
-    const workerURL = new URL(
-      '../../../features-worker/index.ts',
-      import.meta.url,
+    this._worker = new Worker(
+      new URL('../../../features-worker/index.ts', import.meta.url),
+      { type: 'module' },
     );
-    this._worker = new Worker(workerURL, { type: 'module' });
     this._workerApi = wrap<ProcessorWorkerApi>(this._worker);
   }
 }

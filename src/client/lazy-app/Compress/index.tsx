@@ -266,7 +266,7 @@ export default class Compress extends Component<Props, State> {
   // And again one for each side
   private sideAbortControllers = [new AbortController(), new AbortController()];
   /** For debouncing calls to updateImage for each side. */
-  private updateImageTimeout?: number;
+  private updateImageTimeout?: ReturnType<typeof setTimeout>;
 
   constructor(props: Props) {
     super(props);
@@ -584,6 +584,7 @@ export default class Compress extends Component<Props, State> {
         });
       } catch (err) {
         if (err instanceof Error && err.name === 'AbortError') return;
+        this.setState({ loading: false });
         this.props.showSnack(`Source decoding error: ${err}`);
         throw err;
       }

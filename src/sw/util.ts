@@ -6,10 +6,15 @@ declare var self: ServiceWorkerGlobalScope;
 export function cacheOrNetwork(event: FetchEvent): void {
   event.respondWith(
     (async function () {
-      const cachedResponse = await caches.match(event.request, {
-        ignoreSearch: true,
-      });
-      return cachedResponse || fetch(event.request);
+      try {
+        return await fetch(event.request);
+      } catch (error) {
+        const cachedResponse = await caches.match(event.request, {
+          ignoreSearch: true,
+        });
+        if (cachedResponse) return cachedResponse;
+        throw error;
+      }
     })(),
   );
 }
