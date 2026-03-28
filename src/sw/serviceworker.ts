@@ -12,9 +12,11 @@ import { shouldCacheDynamically } from './to-cache';
 // Give TypeScript the correct global.
 declare var self: ServiceWorkerGlobalScope;
 
-const versionedCache = 'static-' + VERSION;
+const swVersion = typeof VERSION !== 'undefined' ? VERSION : 'dev';
+const versionedCache = 'static-' + swVersion;
 const dynamicCache = 'dynamic';
 const expectedCaches = [versionedCache, dynamicCache];
+const dynamicKeepAssets = typeof ASSETS !== 'undefined' ? ASSETS : [];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -73,7 +75,7 @@ self.addEventListener('fetch', (event) => {
 
   if (shouldCacheDynamically(url.pathname)) {
     cacheOrNetworkAndCache(event, dynamicCache);
-    cleanupCache(event, dynamicCache, ASSETS);
+    cleanupCache(event, dynamicCache, dynamicKeepAssets);
     return;
   }
 
