@@ -156,13 +156,6 @@ async function processImage(
   if (processorState.resize.enabled) {
     result = await resize(signal, source, processorState.resize, workerBridge);
   }
-  if (processorState.quantize.enabled) {
-    result = await workerBridge.quantize(
-      signal,
-      result,
-      processorState.quantize,
-    );
-  }
   return result;
 }
 
@@ -264,6 +257,63 @@ function processorStateEquivalent(a: ProcessorState, b: ProcessorState) {
   return true;
 }
 
+function normalizeProcessorState(
+  processorState?: Partial<ProcessorState>,
+): ProcessorState {
+  return {
+    resize: {
+      ...defaultProcessorState.resize,
+      ...(processorState?.resize ?? {}),
+    },
+  };
+}
+
+function normalizeSideSettings(
+  sideSettings?: Partial<SideSettings>,
+): SideSettings | undefined {
+  if (!sideSettings) return undefined;
+
+  return {
+    processorState: normalizeProcessorState(sideSettings.processorState),
+    encoderState: sideSettings.encoderState,
+  };
+}
+
+function parseSavedSideSettings(storedValue: string) {
+  return JSON.parse(storedValue) as Partial<
+    Pick<Side, 'encodedSettings' | 'latestSettings'>
+  >;
+}
+
+function loadSavedSideSettings(
+  fallback: SideSettings,
+  storageKey: string,
+): Side {
+  const storedValue = localStorage.getItem(storageKey);
+
+  if (!storedValue) {
+    return {
+      latestSettings: fallback,
+      loading: false,
+    };
+  }
+
+  try {
+    const parsed = parseSavedSideSettings(storedValue);
+
+    return {
+      encodedSettings: normalizeSideSettings(parsed.encodedSettings),
+      latestSettings: normalizeSideSettings(parsed.latestSettings) ?? fallback,
+      loading: false,
+    };
+  } catch {
+    return {
+      latestSettings: fallback,
+      loading: false,
+    };
+  }
+}
+
 const loadingIndicator = '⏳ ';
 
 const originalDocumentTitle = document.title;
@@ -280,39 +330,27 @@ function updateDocumentTitle(loadingFileInfo: LoadingFileInfo): void {
 export default class Compress extends Component<Props, State> {
   widthQuery = window.matchMedia('(max-width: 599px)');
 
+  private readonly defaultLeftSideSettings: SideSettings = {
+    processorState: defaultProcessorState,
+    encoderState: undefined,
+  };
+
+  private readonly defaultRightSideSettings: SideSettings = {
+    processorState: defaultProcessorState,
+    encoderState: {
+      type: 'mozJPEG',
+      options: encoderMap.mozJPEG.meta.defaultOptions,
+    },
+  };
+
   state: State = {
     source: undefined,
     loading: false,
     preprocessorState: defaultPreprocessorState,
     // Tasking catched side settings if available otherwise taking default settings
     sides: [
-      localStorage.getItem('leftSideSettings')
-        ? {
-            ...JSON.parse(localStorage.getItem('leftSideSettings') as string),
-            loading: false,
-          }
-        : {
-            latestSettings: {
-              processorState: defaultProcessorState,
-              encoderState: undefined,
-            },
-            loading: false,
-          },
-      localStorage.getItem('rightSideSettings')
-        ? {
-            ...JSON.parse(localStorage.getItem('rightSideSettings') as string),
-            loading: false,
-          }
-        : {
-            latestSettings: {
-              processorState: defaultProcessorState,
-              encoderState: {
-                type: 'mozJPEG',
-                options: encoderMap.mozJPEG.meta.defaultOptions,
-              },
-            },
-            loading: false,
-          },
+      loadSavedSideSettings(this.defaultLeftSideSettings, 'leftSideSettings'),
+      loadSavedSideSettings(this.defaultRightSideSettings, 'rightSideSettings'),
     ],
     mobileView: this.widthQuery.matches,
   };
@@ -492,9 +530,17 @@ export default class Compress extends Component<Props, State> {
 
     if (index === 0 && leftSideSettingsString) {
       const oldLeftSideSettings = this.state.sides[index];
+      const importedLeftSettings = parseSavedSideSettings(
+        leftSideSettingsString,
+      );
       const newLeftSideSettings = {
         ...this.state.sides[index],
-        ...JSON.parse(leftSideSettingsString),
+        encodedSettings: normalizeSideSettings(
+          importedLeftSettings.encodedSettings,
+        ),
+        latestSettings:
+          normalizeSideSettings(importedLeftSettings.latestSettings) ??
+          this.defaultLeftSideSettings,
       };
       this.setState({
         sides: cleanSet(this.state.sides, index, newLeftSideSettings),
@@ -513,9 +559,17 @@ export default class Compress extends Component<Props, State> {
 
     if (index === 1 && rightSideSettingsString) {
       const oldRightSideSettings = this.state.sides[index];
+      const importedRightSettings = parseSavedSideSettings(
+        rightSideSettingsString,
+      );
       const newRightSideSettings = {
         ...this.state.sides[index],
-        ...JSON.parse(rightSideSettingsString),
+        encodedSettings: normalizeSideSettings(
+          importedRightSettings.encodedSettings,
+        ),
+        latestSettings:
+          normalizeSideSettings(importedRightSettings.latestSettings) ??
+          this.defaultRightSideSettings,
       };
       this.setState({
         sides: cleanSet(this.state.sides, index, newRightSideSettings),

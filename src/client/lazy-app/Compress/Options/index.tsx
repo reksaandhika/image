@@ -15,7 +15,6 @@ import {
 import Expander from './Expander';
 import Toggle from './Toggle';
 import Select from './Select';
-import { Options as QuantOptionsComponent } from 'features/processors/quantize/client';
 import { Options as ResizeOptionsComponent } from 'features/processors/resize/client';
 import { ImportIcon, SaveIcon, SwapIcon } from 'client/lazy-app/icons';
 
@@ -114,13 +113,6 @@ export default class Options extends Component<Props, State> {
     this.props.onProcessorOptionsChange(
       this.props.index,
       cleanSet(this.props.processorState, `${processor}.enabled`, el.checked),
-    );
-  };
-
-  private onQuantizerOptionsChange = (opts: ProcessorOptions['quantize']) => {
-    this.props.onProcessorOptionsChange(
-      this.props.index,
-      cleanMerge(this.props.processorState, 'quantize', opts),
     );
   };
 
@@ -224,23 +216,6 @@ export default class Options extends Component<Props, State> {
                     inputHeight={source ? source.preprocessed.height : 1}
                     options={processorState.resize}
                     onChange={this.onResizeOptionsChange}
-                  />
-                ) : null}
-              </Expander>
-
-              <label class={style.sectionEnabler}>
-                Reduce palette
-                <Toggle
-                  name="quantize.enable"
-                  checked={!!processorState.quantize.enabled}
-                  onChange={this.onProcessorEnabledChange}
-                />
-              </label>
-              <Expander>
-                {processorState.quantize.enabled ? (
-                  <QuantOptionsComponent
-                    options={processorState.quantize}
-                    onChange={this.onQuantizerOptionsChange}
                   />
                 ) : null}
               </Expander>
