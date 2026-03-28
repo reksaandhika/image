@@ -17,7 +17,7 @@
   "devDependencies": {
     "@preact/preset-vite": "^2.10.5",
     "@types/mime-types": "^2.1.1",
-    "@types/node": "^20.19.37",
+    "@types/node": "^22",
     "comlink": "^4.3.0",
     "cssnano": "^7.1.3",
     "file-drop-element": "^1.0.1",
