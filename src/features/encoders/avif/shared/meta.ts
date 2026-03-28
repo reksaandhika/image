@@ -10,9 +10,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { EncodeOptions, AVIFTune } from 'codecs/avif/enc/avif_enc';
+import type { EncodeOptions } from 'codecs/avif/enc/avif_enc';
 
-export { EncodeOptions, AVIFTune };
+// Mirror of the const enum in avif_enc.d.ts (inlined for Vite/esbuild compatibility)
+export const enum AVIFTune {
+  auto = 0,
+  psnr = 1,
+  ssim = 2,
+}
+
+export type { EncodeOptions };
 
 export const label = 'AVIF';
 export const mimeType = 'image/avif';

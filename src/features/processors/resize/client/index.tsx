@@ -21,7 +21,7 @@ import {
   preventDefault,
   inputFieldChecked,
 } from 'client/lazy-app/util';
-import * as style from 'client/lazy-app/Compress/Options/style.css';
+import * as style from 'client/lazy-app/Compress/Options/style.module.css';
 import { linkRef } from 'shared/prerendered-app/util';
 import Select from 'client/lazy-app/Compress/Options/Select';
 import Expander from 'client/lazy-app/Compress/Options/Expander';

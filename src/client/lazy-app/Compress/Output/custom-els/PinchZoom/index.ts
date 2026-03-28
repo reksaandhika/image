@@ -1,5 +1,5 @@
 import PointerTracker, { Pointer } from 'pointer-tracker';
-import 'add-css:./styles.css';
+import './styles.module.css';
 import { isSafari } from 'client/lazy-app/util';
 
 interface Point {

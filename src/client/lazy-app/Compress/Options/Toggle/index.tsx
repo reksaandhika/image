@@ -1,6 +1,6 @@
 import { h, Component } from 'preact';
-import * as style from './style.css';
-import 'add-css:./style.css';
+import * as style from './style.module.css';
+import './style.module.css';
 
 interface Props extends preact.JSX.HTMLAttributes {}
 interface State {}

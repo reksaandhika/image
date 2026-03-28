@@ -2,7 +2,7 @@ import { EncodeOptions } from '../shared/meta';
 import type WorkerBridge from 'client/lazy-app/worker-bridge';
 import { h, Component } from 'preact';
 import { preventDefault, shallowEqual } from 'client/lazy-app/util';
-import * as style from 'client/lazy-app/Compress/Options/style.css';
+import * as style from 'client/lazy-app/Compress/Options/style.module.css';
 import Range from 'client/lazy-app/Compress/Options/Range';
 import Checkbox from 'client/lazy-app/Compress/Options/Checkbox';
 import Expander from 'client/lazy-app/Compress/Options/Expander';
@@ -98,7 +98,8 @@ export class Options extends Component<Props, State> {
           lossyPalette: optionState.lossless ? optionState.slightLoss : false,
           decodingSpeedTier: optionState.decodingSpeedTier,
           photonNoiseIso: optionState.photonNoiseIso,
-          lossyModular: optionState.quality < 7 ? true : optionState.alternativeLossy,
+          lossyModular:
+            optionState.quality < 7 ? true : optionState.alternativeLossy,
         };
 
         // Updating options, so we don't recalculate in getDerivedStateFromProps.

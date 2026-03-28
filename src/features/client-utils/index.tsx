@@ -1,5 +1,5 @@
 import { h, Component } from 'preact';
-import * as style from 'client/lazy-app/Compress/Options/style.css';
+import * as style from 'client/lazy-app/Compress/Options/style.module.css';
 import Range from 'client/lazy-app/Compress/Options/Range';
 
 interface EncodeOptions {

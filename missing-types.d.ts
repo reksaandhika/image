@@ -10,48 +10,34 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+/// <reference types="vite/client" />
 /// <reference path="./emscripten-types.d.ts" />
 
-declare module 'entry-data:*' {
-  export const main: string;
-  export const deps: string[];
-}
-
-declare module 'url:*' {
-  const value: string;
-  export default value;
-}
-
-declare module 'img-url:*' {
-  const value: string;
-  export default value;
+// ?img-url query: returns URL string + image dimensions
+declare module '*?img-url' {
+  const url: string;
+  export default url;
   export const width: number;
   export const height: number;
+  export const mime: string;
 }
 
-declare module 'omt:*' {
-  const value: string;
-  export default value;
-}
-
-declare module 'css:*' {
-  const source: string;
-  export default source;
-}
-
-declare module 'data-url:*' {
+// ?data-url and ?data-url-text: return data URI strings
+declare module '*?data-url' {
   const url: string;
   export default url;
 }
 
-declare module 'data-url-text:*' {
+declare module '*?data-url-text' {
   const url: string;
   export default url;
 }
 
-declare module 'service-worker:*' {
-  const url: string;
-  export default url;
+// CSS modules: typed by vite/client via *.module.css,
+// but plain *.css imports that auto-inject need this fallback
+declare module '*.css' {
+  const classes: Record<string, string>;
+  export default classes;
 }
 
 declare var ga: {
@@ -60,3 +46,4 @@ declare var ga: {
 };
 
 declare const __PRODUCTION__: boolean;
+declare const __PRERENDER__: boolean;

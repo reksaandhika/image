@@ -1,6 +1,5 @@
 import { wrap } from 'comlink';
 import { BridgeMethods, methodNames } from './meta';
-import workerURL from 'omt:../../../features-worker';
 import type { ProcessorWorkerApi } from '../../../features-worker';
 import { abortable } from '../util';
 
@@ -26,7 +25,11 @@ class WorkerBridge {
   }
 
   protected _startWorker() {
-    this._worker = new Worker(workerURL);
+    const workerURL = new URL(
+      '../../../features-worker/index.ts',
+      import.meta.url,
+    );
+    this._worker = new Worker(workerURL, { type: 'module' });
     this._workerApi = wrap<ProcessorWorkerApi>(this._worker);
   }
 }

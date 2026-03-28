@@ -1,5 +1,5 @@
-import * as styles from './styles.css';
-import 'add-css:./styles.css';
+import * as styles from './styles.module.css';
+import './styles.module.css';
 
 // So it doesn't cause an error when running in node
 const HTMLEl = (__PRERENDER__

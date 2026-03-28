@@ -1,6 +1,6 @@
 import { h, Component, ComponentChild, ComponentChildren } from 'preact';
-import * as style from './style.css';
-import 'add-css:./style.css';
+import * as style from './style.module.css';
+import './style.module.css';
 import { transitionHeight } from '../../../util';
 
 interface Props {

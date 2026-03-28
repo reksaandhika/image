@@ -3,8 +3,8 @@ import type PinchZoom from './custom-els/PinchZoom';
 import type { ScaleToOpts } from './custom-els/PinchZoom';
 import './custom-els/PinchZoom';
 import './custom-els/TwoUp';
-import * as style from './style.css';
-import 'add-css:./style.css';
+import * as style from './style.module.css';
+import './style.module.css';
 import { shallowEqual, isSafari } from '../../util';
 import {
   ToggleAliasingIcon,
@@ -15,7 +15,7 @@ import {
   ToggleBackgroundActiveIcon,
   RotateIcon,
 } from '../../icons';
-import { twoUpHandle } from './custom-els/TwoUp/styles.css';
+import { twoUpHandle } from './custom-els/TwoUp/styles.module.css';
 import type { PreprocessorState } from '../../feature-meta';
 import { cleanSet } from '../../util/clean-modify';
 import type { SourceImage } from '../../Compress';

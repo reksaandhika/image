@@ -1,5 +1,5 @@
-import * as style from './styles.css';
-import 'add-css:./styles.css';
+import * as style from './styles.module.css';
+import './styles.module.css';
 import { transitionHeight } from 'client/lazy-app/util';
 
 interface CloseAllOptions {

@@ -11,9 +11,23 @@
  * limitations under the License.
  */
 import type { EncodeOptions } from 'codecs/wp2/enc/wp2_enc';
-import { UVMode, Csp } from 'codecs/wp2/enc/wp2_enc';
 
-export { EncodeOptions, UVMode, Csp };
+// Mirrors of the const enums in wp2_enc.d.ts (inlined for Vite/esbuild compatibility)
+export const enum UVMode {
+  UVModeAdapt = 0,
+  UVMode420 = 1,
+  UVMode444 = 2,
+  UVModeAuto = 3,
+}
+
+export const enum Csp {
+  kYCoCg = 0,
+  kYCbCr = 1,
+  kCustom = 2,
+  kYIQ = 3,
+}
+
+export type { EncodeOptions };
 
 export const label = 'WebP v2 (unstable)';
 export const mimeType = 'image/webp2';

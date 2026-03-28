@@ -1,5 +1,5 @@
-import * as style from './style.css';
-import 'add-css:./style.css';
+import * as style from './style.module.css';
+import './style.module.css';
 
 const RETARGETED_EVENTS = ['focus', 'blur'];
 const UPDATE_EVENTS = ['input', 'change'];

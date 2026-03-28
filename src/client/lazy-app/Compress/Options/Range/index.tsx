@@ -1,6 +1,6 @@
 import { h, Component } from 'preact';
-import * as style from './style.css';
-import 'add-css:./style.css';
+import * as style from './style.module.css';
+import './style.module.css';
 import RangeInputElement from './custom-els/RangeInput';
 import './custom-els/RangeInput';
 import { linkRef } from 'shared/prerendered-app/util';

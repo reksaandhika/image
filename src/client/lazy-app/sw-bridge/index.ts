@@ -2,7 +2,7 @@ import type SnackBarElement from 'shared/custom-els/snack-bar';
 
 import { get, set } from 'idb-keyval';
 
-import swUrl from 'service-worker:sw';
+const swUrl = '/serviceworker.js';
 
 /** Tell the service worker to skip waiting */
 async function skipWaiting() {

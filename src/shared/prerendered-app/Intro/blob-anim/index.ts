@@ -1,4 +1,4 @@
-import * as style from '../style.css';
+import * as style from '../style.module.css';
 import { startBlobs } from './meta';
 
 /**

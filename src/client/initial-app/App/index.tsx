@@ -5,8 +5,8 @@ import type { SnackOptions } from 'shared/custom-els/snack-bar';
 import { h, Component } from 'preact';
 
 import { linkRef } from 'shared/prerendered-app/util';
-import * as style from './style.css';
-import 'add-css:./style.css';
+import * as style from './style.module.css';
+import './style.module.css';
 import 'file-drop-element';
 import 'shared/custom-els/snack-bar';
 import Intro from 'shared/prerendered-app/Intro';

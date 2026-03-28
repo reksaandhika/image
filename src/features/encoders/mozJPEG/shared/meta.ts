@@ -10,11 +10,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import {
-  EncodeOptions,
-  MozJpegColorSpace,
-} from 'codecs/mozjpeg/enc/mozjpeg_enc';
-export { EncodeOptions, MozJpegColorSpace };
+import type { EncodeOptions } from 'codecs/mozjpeg/enc/mozjpeg_enc';
+
+// Mirror of const enum in mozjpeg_enc.d.ts (inlined for Vite/esbuild compatibility)
+export const enum MozJpegColorSpace {
+  GRAYSCALE = 1,
+  RGB = 2,
+  YCbCr = 3,
+}
+
+export type { EncodeOptions };
 
 export const label = 'MozJPEG';
 export const mimeType = 'image/jpeg';
