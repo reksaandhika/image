@@ -356,7 +356,17 @@ export default class BatchCompress extends Component<Props, State> {
       }
     }
 
-    this.setState({ isProcessing: false });
+    const wasAborted = signal.aborted;
+    this.setState((state) => ({
+      isProcessing: false,
+      items: !wasAborted
+        ? state.items
+        : state.items.map((item) =>
+            item.status === 'done' || item.status === 'error'
+              ? item
+              : { ...item, status: 'pending' as const },
+          ),
+    }));
   };
 
   private handleCancel = () => {

@@ -653,15 +653,27 @@ export default class Compress extends Component<Props, State> {
     // That's the main part of the job done.
     this.activeMainJob = undefined;
 
-    // Allow side jobs to happen in parallel
-    sideWorksNeeded.forEach(async (sideWorkNeeded, sideIndex) => {
+    // Allow side jobs to happen in parallel.
+    const sideTasks = sideWorksNeeded.map(async (sideWorkNeeded, sideIndex) => {
+      const signal = sideSignals[sideIndex];
+      const jobState = sideJobStates[sideIndex];
+      const workerBridge = this.workerBridges[sideIndex];
+
+      const finalizeSideJob = () => {
+        if (this.activeSideJobs[sideIndex] !== jobState) return;
+        this.activeSideJobs[sideIndex] = undefined;
+        this.setState((currentSideState) => {
+          const sides = cleanMerge(currentSideState.sides, sideIndex, {
+            loading: false,
+          });
+          return { sides };
+        });
+      };
+
       try {
         // If processing is true, encoding is always true.
         if (!sideWorkNeeded.encoding) return;
 
-        const signal = sideSignals[sideIndex];
-        const jobState = sideJobStates[sideIndex];
-        const workerBridge = this.workerBridges[sideIndex];
         let file: File;
         let data: ImageData;
         let processed: ImageData | undefined = undefined;
@@ -682,9 +694,9 @@ export default class Compress extends Component<Props, State> {
             ({ file, processed, data } = cacheResult);
           } else {
             // Set loading state for this side
-            this.setState((currentState) => {
+            this.setState((currentSideState) => {
               if (signal.aborted) return {};
-              const sides = cleanMerge(currentState.sides, sideIndex, {
+              const sides = cleanMerge(currentSideState.sides, sideIndex, {
                 loading: true,
               });
               return { sides };
@@ -699,9 +711,9 @@ export default class Compress extends Component<Props, State> {
               );
 
               // Update state for process completion, including intermediate render
-              this.setState((currentState) => {
+              this.setState((currentSideState) => {
                 if (signal.aborted) return {};
-                const currentSide = currentState.sides[sideIndex];
+                const currentSide = currentSideState.sides[sideIndex];
                 const side: Side = {
                   ...currentSide,
                   processed,
@@ -712,7 +724,7 @@ export default class Compress extends Component<Props, State> {
                     processorState: jobState.processorState,
                   },
                 };
-                const sides = cleanSet(currentState.sides, sideIndex, side);
+                const sides = cleanSet(currentSideState.sides, sideIndex, side);
                 return { sides };
               });
             } else {
@@ -739,9 +751,9 @@ export default class Compress extends Component<Props, State> {
           }
         }
 
-        this.setState((currentState) => {
+        this.setState((currentSideState) => {
           if (signal.aborted) return {};
-          const currentSide = currentState.sides[sideIndex];
+          const currentSide = currentSideState.sides[sideIndex];
 
           if (currentSide.downloadUrl) {
             URL.revokeObjectURL(currentSide.downloadUrl);
@@ -759,23 +771,18 @@ export default class Compress extends Component<Props, State> {
               encoderState: jobState.encoderState,
             },
           };
-          const sides = cleanSet(currentState.sides, sideIndex, side);
+          const sides = cleanSet(currentSideState.sides, sideIndex, side);
           return { sides };
         });
-
-        this.activeSideJobs[sideIndex] = undefined;
       } catch (err) {
         if (err instanceof Error && err.name === 'AbortError') return;
-        this.setState((currentState) => {
-          const sides = cleanMerge(currentState.sides, sideIndex, {
-            loading: false,
-          });
-          return { sides };
-        });
         this.props.showSnack(`Processing error: ${err}`);
-        throw err;
+      } finally {
+        finalizeSideJob();
       }
     });
+
+    void Promise.allSettled(sideTasks);
   }
 
   render(

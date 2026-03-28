@@ -5,6 +5,8 @@ import { abortable } from '../util';
 
 /** How long the worker should be idle before terminating. */
 const workerTimeout = 10_000;
+/** Upper bound for a single worker RPC. */
+const operationTimeout = 120_000;
 
 interface WorkerBridge extends BridgeMethods {}
 
@@ -16,6 +18,26 @@ class WorkerBridge {
   protected _workerApi?: ProcessorWorkerApi;
   /** ID from setTimeout */
   protected _workerTimeout?: number;
+
+  protected _withOperationTimeout<T>(promise: Promise<T>): Promise<T> {
+    return new Promise<T>((resolve, reject) => {
+      const timeoutId = setTimeout(() => {
+        this._terminateWorker();
+        reject(new Error('Worker operation timed out'));
+      }, operationTimeout);
+
+      promise.then(
+        (value) => {
+          clearTimeout(timeoutId);
+          resolve(value);
+        },
+        (error) => {
+          clearTimeout(timeoutId);
+          reject(error);
+        },
+      );
+    });
+  }
 
   protected _terminateWorker() {
     if (!this._worker) return;
@@ -40,9 +62,9 @@ for (const methodName of methodNames) {
     signal: AbortSignal,
     ...args: any
   ) {
-    this._queue = this._queue
-      // Ignore any errors in the queue
-      .catch(() => {})
+    const task = this._queue
+      // Keep the queue alive even if the previous task failed.
+      .catch(() => undefined)
       .then(async () => {
         if (signal.aborted) throw new DOMException('AbortError', 'AbortError');
 
@@ -52,10 +74,12 @@ for (const methodName of methodNames) {
         const onAbort = () => this._terminateWorker();
         signal.addEventListener('abort', onAbort);
 
-        return abortable(
-          signal,
-          // @ts-ignore - TypeScript can't figure this out
-          this._workerApi![methodName](...args),
+        return this._withOperationTimeout(
+          abortable(
+            signal,
+            // @ts-ignore - TypeScript can't figure this out
+            this._workerApi![methodName](...args),
+          ),
         ).finally(() => {
           // No longer care about aborting - this task is complete.
           signal.removeEventListener('abort', onAbort);
@@ -67,7 +91,12 @@ for (const methodName of methodNames) {
         });
       });
 
-    return this._queue;
+    this._queue = task.then(
+      () => undefined,
+      () => undefined,
+    );
+
+    return task;
   } as any;
 }
 
