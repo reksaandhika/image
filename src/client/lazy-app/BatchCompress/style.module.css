@@ -330,6 +330,23 @@
   }
 }
 
+.resetBtn {
+  composes: actionBtn;
+  background: rgba(255, 255, 255, 0.05);
+  color: #a7bbd3;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #e5edf7;
+  }
+
+  &:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+  }
+}
+
 .progressArea {
   grid-area: progress;
   padding: 0 1.6rem;

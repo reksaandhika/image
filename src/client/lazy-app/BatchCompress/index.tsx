@@ -82,6 +82,11 @@ export default class BatchCompress extends Component<Props, State> {
   private workerBridge = new WorkerBridge();
   private abortController?: AbortController;
 
+  private readonly defaultEncoderState: EncoderState = {
+    type: 'mozJPEG',
+    options: encoderMap.mozJPEG.meta.defaultOptions,
+  };
+
   constructor(props: Props) {
     super(props);
 
@@ -93,16 +98,30 @@ export default class BatchCompress extends Component<Props, State> {
       thumbUrl: URL.createObjectURL(file),
     }));
 
+    let encoderState = this.defaultEncoderState;
+    let processorState = defaultProcessorState;
+    let resizeDimension: ResizeDimension = 'width';
+    let resizeValue = 1920;
+
+    try {
+      const saved = localStorage.getItem('batchSettings');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.encoderState)
+          encoderState = parsed.encoderState as EncoderState;
+        if (parsed.processorState) processorState = parsed.processorState;
+        if (parsed.resizeDimension) resizeDimension = parsed.resizeDimension;
+        if (parsed.resizeValue > 0) resizeValue = parsed.resizeValue;
+      }
+    } catch {}
+
     this.state = {
       items,
-      encoderState: {
-        type: 'mozJPEG',
-        options: encoderMap.mozJPEG.meta.defaultOptions,
-      },
-      processorState: defaultProcessorState,
+      encoderState,
+      processorState,
       isProcessing: false,
-      resizeDimension: 'width',
-      resizeValue: 1920,
+      resizeDimension,
+      resizeValue,
     };
 
     supportedEncoderMapP.then((supportedEncoderMap) =>
@@ -115,6 +134,27 @@ export default class BatchCompress extends Component<Props, State> {
     for (const item of this.state.items) {
       if (item.thumbUrl) URL.revokeObjectURL(item.thumbUrl);
       if (item.result) URL.revokeObjectURL(item.result.downloadUrl);
+    }
+  }
+
+  componentDidUpdate(_prevProps: Props, prevState: State): void {
+    if (
+      prevState.encoderState !== this.state.encoderState ||
+      prevState.processorState !== this.state.processorState ||
+      prevState.resizeDimension !== this.state.resizeDimension ||
+      prevState.resizeValue !== this.state.resizeValue
+    ) {
+      try {
+        localStorage.setItem(
+          'batchSettings',
+          JSON.stringify({
+            encoderState: this.state.encoderState,
+            processorState: this.state.processorState,
+            resizeDimension: this.state.resizeDimension,
+            resizeValue: this.state.resizeValue,
+          }),
+        );
+      } catch {}
     }
   }
 
@@ -164,6 +204,16 @@ export default class BatchCompress extends Component<Props, State> {
         method,
       }),
     }));
+  };
+
+  private handleResetSettings = () => {
+    this.setState({
+      encoderState: this.defaultEncoderState,
+      processorState: defaultProcessorState,
+      resizeDimension: 'width',
+      resizeValue: 1920,
+    });
+    localStorage.removeItem('batchSettings');
   };
 
   private handleRemoveItem = (id: string) => {
@@ -500,6 +550,22 @@ export default class BatchCompress extends Component<Props, State> {
           </div>
 
           <div class={style.sidebarActions}>
+            <button
+              class={style.resetBtn}
+              onClick={this.handleResetSettings}
+              disabled={isProcessing}
+            >
+              Reset Settings
+            </button>
+
+            <button
+              class={style.downloadAllBtn}
+              onClick={this.handleDownloadAll}
+              disabled={doneCount === 0}
+            >
+              Download ZIP ({doneCount})
+            </button>
+
             {isProcessing ? (
               <button class={style.cancelBtn} onClick={this.handleCancel}>
                 Cancel
@@ -513,14 +579,6 @@ export default class BatchCompress extends Component<Props, State> {
                 {doneCount > 0 ? 'Re-process All' : 'Process All'}
               </button>
             )}
-
-            <button
-              class={style.downloadAllBtn}
-              onClick={this.handleDownloadAll}
-              disabled={doneCount === 0}
-            >
-              Download ZIP ({doneCount})
-            </button>
           </div>
         </div>
 

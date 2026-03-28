@@ -119,8 +119,7 @@
   }
 }
 
-.save-button,
-.import-button {
+.reset-button {
   composes: title-button;
 
   svg {
@@ -130,13 +129,5 @@
   &:focus {
     outline: var(--header-text-color) solid 2px;
     outline-offset: 0.25em;
-  }
-}
-
-.button-opacity {
-  pointer-events: none;
-  cursor: not-allowed;
-  svg {
-    opacity: 0.5;
   }
 }

@@ -360,76 +360,40 @@ export default class Compress extends Component<Props, State> {
         filename: this.state.source?.file.name,
       });
     }
+
+    // Auto-persist right side settings to localStorage
+    if (
+      prevState.sides[1].latestSettings !== this.state.sides[1].latestSettings
+    ) {
+      try {
+        localStorage.setItem(
+          'rightSideSettings',
+          JSON.stringify({
+            encodedSettings: this.state.sides[1].encodedSettings,
+            latestSettings: this.state.sides[1].latestSettings,
+          }),
+        );
+      } catch {}
+    }
+
     this.queueUpdateImage();
   }
 
-  /**
-   * This function saves encodedSettings and latestSettings of
-   * particular side in browser local storage
-   * @param index : (0|1)
-   * @returns
-   */
-  private onSaveSideSettingsClick = async (index: 0 | 1) => {
+  private onResetSettings = async (index: 0 | 1) => {
     if (index === 0) return;
 
-    if (index === 1) {
-      const rightSideSettings = JSON.stringify({
-        encodedSettings: this.state.sides[index].encodedSettings,
-        latestSettings: this.state.sides[index].latestSettings,
-      });
-      localStorage.setItem('rightSideSettings', rightSideSettings);
-      // Firing an event when we save side settings in localstorage
-      window.dispatchEvent(new CustomEvent('rightSideSettings'));
-      await this.props.showSnack('Right side settings saved', {
-        timeout: 1500,
-        actions: ['dismiss'],
-      });
-      return;
-    }
-  };
-
-  /**
-   * This function sets the side state with catched localstorage
-   * value as per side index provided
-   * @param index : (0|1)
-   * @returns
-   */
-  private onImportSideSettingsClick = async (index: 0 | 1) => {
-    if (index === 0) return;
-
-    const rightSideSettingsString = localStorage.getItem('rightSideSettings');
-
-    if (index === 1 && rightSideSettingsString) {
-      const oldRightSideSettings = this.state.sides[index];
-      const importedRightSettings = parseSavedSideSettings(
-        rightSideSettingsString,
-      );
-      const newRightSideSettings = {
+    this.setState({
+      sides: cleanSet(this.state.sides, index, {
         ...this.state.sides[index],
-        encodedSettings: normalizeSideSettings(
-          importedRightSettings.encodedSettings,
-        ),
-        latestSettings:
-          normalizeSideSettings(importedRightSettings.latestSettings) ??
-          this.defaultRightSideSettings,
-      };
-      this.setState({
-        sides: cleanSet(this.state.sides, index, newRightSideSettings),
-      });
-      const result = await this.props.showSnack(
-        'Right side settings imported',
-        {
-          timeout: 3000,
-          actions: ['undo', 'dismiss'],
-        },
-      );
-      if (result === 'undo') {
-        this.setState({
-          sides: cleanSet(this.state.sides, index, oldRightSideSettings),
-        });
-      }
-      return;
-    }
+        latestSettings: this.defaultRightSideSettings,
+        encodedSettings: undefined,
+      }),
+    });
+    localStorage.removeItem('rightSideSettings');
+    await this.props.showSnack('Settings reset to defaults', {
+      timeout: 1500,
+      actions: ['dismiss'],
+    });
   };
 
   private onPreprocessorChange = async (
@@ -831,8 +795,7 @@ export default class Compress extends Component<Props, State> {
         onEncoderTypeChange={this.onEncoderTypeChange}
         onEncoderOptionsChange={this.onEncoderOptionsChange}
         onProcessorOptionsChange={this.onProcessorOptionsChange}
-        onSaveSideSettingsClick={this.onSaveSideSettingsClick}
-        onImportSideSettingsClick={this.onImportSideSettingsClick}
+        onResetSettings={this.onResetSettings}
       />
     ));
 
