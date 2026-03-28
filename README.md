@@ -1,37 +1,67 @@
-# [Squoosh]!
+# Squoosh (Fork)
 
-[Squoosh] is an image compression web app that reduces image sizes through numerous formats.
+A modernized fork of [Squoosh] — a browser-based image compression app that shrinks images using a wide range of codecs. This fork migrates the build toolchain to **Vite**, adds a **Batch Compress** mode, and ships a **simplified UI**.
 
-# Privacy
+## What's different from Squoosh
 
-Squoosh does not send your image to a server. All image compression processes locally.
+| Area              | Upstream Squoosh               | This fork                                             |
+| ----------------- | ------------------------------ | ----------------------------------------------------- |
+| Build tool        | Rollup / custom scripts        | **Vite 8** + `@preact/preset-vite`                    |
+| PWA               | workbox-cli                    | **vite-plugin-pwa** (injectManifest)                  |
+| Compression modes | Single image                   | Single image **+ Batch**                              |
+| UI                | Full side-by-side compare view | Simplified single-panel view with streamlined options |
+| Resize in batch   | —                              | Resize by width **or** height before encoding         |
+| Output            | Individual download            | Individual download **+ ZIP download** for batches    |
 
-However, Squoosh utilizes Google Analytics to collect the following:
+## Features
 
-- [Basic visitor data](https://support.google.com/analytics/answer/6004245?ref_topic=2919631).
-- The before and after image size value.
-- If Squoosh PWA, the type of Squoosh installation.
-- If Squoosh PWA, the installation time and date.
+- **Single image compression** — side-by-side before/after preview with live codec options.
+- **Batch compression** — drop multiple images, pick a codec + resize settings, and download all results as a ZIP.
+- **All original codecs** — MozJPEG, WebP, AVIF, JXL, OxiPNG, QOI, WebP 2, and more.
+- **100% client-side** — no images ever leave your browser.
+- **PWA** — installable, works offline.
 
-# Developing
+## Privacy
 
-To develop for Squoosh:
+All processing happens locally in your browser. No images are uploaded to any server.
 
-1. Clone the repository
-1. To install node packages, run:
-   ```sh
-   npm install
-   ```
-1. Then build the app by running:
-   ```sh
-   npm run build
-   ```
-1. After building, start the development server by running:
-   ```sh
-   npm run dev
-   ```
+This fork removes the Google Analytics dependency from the original Squoosh.
 
-# Contributing
+## Developing
+
+```sh
+# 1. Clone the repo
+git clone https://github.com/GoogleChromeLabs/squoosh
+cd squoosh
+
+# 2. Install dependencies
+npm install
+
+# 3. Start the dev server (with hot module replacement)
+npm run dev
+
+# 4. Or build for production
+npm run build
+
+# 5. Preview the production build locally
+npm run preview
+```
+
+Type-checking only (no emit):
+
+```sh
+npm run typecheck
+```
+
+## Tech stack
+
+- **Preact** — lightweight UI components
+- **Vite** — dev server and production bundler
+- **Comlink** — typed Web Worker RPC
+- **JSZip** — client-side ZIP generation for batch downloads
+- **PostCSS** (nested + simple-vars + cssnano) — CSS processing
+
+## Contributing
 
 Squoosh is an open-source project that appreciates all community involvement. To contribute to the project, follow the [contribute guide](/CONTRIBUTING.md).
 
