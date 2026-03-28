@@ -68,7 +68,8 @@
   justify-content: space-between;
   cursor: pointer;
 
-  & h3 {
+  & h3,
+  & span {
     margin: 0;
     font-size: 0.75rem;
     font-weight: 700;
@@ -159,6 +160,22 @@
   border-radius: 8px;
   border-left: 3px solid var(--blue, #5fb4e4);
   line-height: 1.4;
+}
+
+.filenamePreview {
+  margin: 0.7rem 0 0;
+  padding: 0.5rem 0.7rem;
+  font-size: 0.78rem;
+  color: #9eb1c6;
+  background: rgba(95, 180, 228, 0.06);
+  border-radius: 8px;
+  border-left: 3px solid var(--blue, #5fb4e4);
+  line-height: 1.35;
+
+  & strong {
+    color: #eaf3ff;
+    overflow-wrap: anywhere;
+  }
 }
 
 .sidebarSection {
@@ -495,6 +512,23 @@
   align-items: center;
   gap: 0.5rem;
   flex-wrap: wrap;
+}
+
+.itemAfterFilename {
+  font-size: 0.82rem;
+  color: #9bb3c7;
+  display: flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.itemFilenameValue {
+  color: #dce7f3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
 }
 
 .itemSizeArrow {

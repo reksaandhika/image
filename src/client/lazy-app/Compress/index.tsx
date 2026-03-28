@@ -29,6 +29,12 @@ import {
   compressImage,
   SourceImage,
 } from '../util/image-pipeline';
+import {
+  FilenameSettings,
+  defaultFilenameSettings,
+  normalizeFilenameSettings,
+  filenameSettingsEqual,
+} from '../filename-settings';
 
 export type OutputType = EncoderType | 'identity';
 
@@ -46,6 +52,7 @@ interface Side {
   data?: ImageData;
   latestSettings: SideSettings;
   encodedSettings?: SideSettings;
+  encodedFilenameSettings?: FilenameSettings;
   loading: boolean;
 }
 
@@ -63,6 +70,7 @@ interface State {
   mobileView: boolean;
   preprocessorState: PreprocessorState;
   encodedPreprocessorState?: PreprocessorState;
+  filenameSettings: FilenameSettings;
 }
 
 interface MainJob {
@@ -73,6 +81,7 @@ interface MainJob {
 interface SideJob {
   processorState: ProcessorState;
   encoderState?: EncoderState;
+  filenameSettings: FilenameSettings;
 }
 
 interface LoadingFileInfo {
@@ -94,6 +103,7 @@ function stateForNewSourceData(state: State): State {
       downloadUrl: undefined,
       data: undefined,
       encodedSettings: undefined,
+      encodedFilenameSettings: undefined,
     });
   }
 
@@ -178,6 +188,19 @@ function parseSavedSideSettings(storedValue: string) {
   >;
 }
 
+function loadSavedFilenameSettings(storageKey: string): FilenameSettings {
+  const storedValue = localStorage.getItem(storageKey);
+  if (!storedValue) return defaultFilenameSettings;
+
+  try {
+    return normalizeFilenameSettings(
+      JSON.parse(storedValue) as Partial<FilenameSettings>,
+    );
+  } catch {
+    return defaultFilenameSettings;
+  }
+}
+
 function loadSavedSideSettings(
   fallback: SideSettings,
   storageKey: string,
@@ -255,6 +278,7 @@ export default class Compress extends Component<Props, State> {
       }),
       loadSavedSideSettings(this.defaultRightSideSettings, 'rightSideSettings'),
     ],
+    filenameSettings: loadSavedFilenameSettings('rightSideFilenameSettings'),
     mobileView: this.widthQuery.matches,
   };
 
@@ -328,6 +352,12 @@ export default class Compress extends Component<Props, State> {
     });
   };
 
+  private onFilenameSettingsChange = (settings: FilenameSettings): void => {
+    this.setState({
+      filenameSettings: settings,
+    });
+  };
+
   componentWillReceiveProps(nextProps: Props): void {
     if (nextProps.file !== this.props.file) {
       this.sourceFile = nextProps.file;
@@ -376,6 +406,15 @@ export default class Compress extends Component<Props, State> {
       } catch {}
     }
 
+    if (prevState.filenameSettings !== this.state.filenameSettings) {
+      try {
+        localStorage.setItem(
+          'rightSideFilenameSettings',
+          JSON.stringify(this.state.filenameSettings),
+        );
+      } catch {}
+    }
+
     this.queueUpdateImage();
   }
 
@@ -388,8 +427,10 @@ export default class Compress extends Component<Props, State> {
         latestSettings: this.defaultRightSideSettings,
         encodedSettings: undefined,
       }),
+      filenameSettings: defaultFilenameSettings,
     });
     localStorage.removeItem('rightSideSettings');
+    localStorage.removeItem('rightSideFilenameSettings');
     await this.props.showSnack('Settings reset to defaults', {
       timeout: 1500,
       actions: ['dismiss'],
@@ -473,6 +514,7 @@ export default class Compress extends Component<Props, State> {
             side.encodedSettings && side.encodedSettings.processorState,
           encoderState:
             side.encodedSettings && side.encodedSettings.encoderState,
+          filenameSettings: side.encodedFilenameSettings,
         },
     );
 
@@ -487,6 +529,7 @@ export default class Compress extends Component<Props, State> {
         ? side.latestSettings.processorState
         : defaultProcessorState,
       encoderState: side.latestSettings.encoderState,
+      filenameSettings: currentState.filenameSettings,
     }));
 
     // Figure out what needs doing:
@@ -509,7 +552,12 @@ export default class Compress extends Component<Props, State> {
         processing: needsProcessing,
         encoding:
           needsProcessing ||
-          latestSideJob.encoderState !== sideJobStates[i].encoderState,
+          latestSideJob.encoderState !== sideJobStates[i].encoderState ||
+          (!!sideJobStates[i].encoderState &&
+            !filenameSettingsEqual(
+              latestSideJob.filenameSettings,
+              sideJobStates[i].filenameSettings,
+            )),
       };
     });
 
@@ -689,6 +737,7 @@ export default class Compress extends Component<Props, State> {
             source.preprocessed,
             jobState.processorState,
             jobState.encoderState,
+            jobState.filenameSettings,
           );
 
           if (cacheResult) {
@@ -737,6 +786,7 @@ export default class Compress extends Component<Props, State> {
               processed,
               jobState.encoderState,
               source.file.name,
+              jobState.filenameSettings,
               workerBridge,
             );
             data = await decodeImage(signal, file, workerBridge);
@@ -748,6 +798,7 @@ export default class Compress extends Component<Props, State> {
               preprocessed: source.preprocessed,
               encoderState: jobState.encoderState,
               processorState: jobState.processorState,
+              filenameSettings: jobState.filenameSettings,
             });
           }
         }
@@ -771,6 +822,7 @@ export default class Compress extends Component<Props, State> {
               processorState: jobState.processorState,
               encoderState: jobState.encoderState,
             },
+            encodedFilenameSettings: jobState.filenameSettings,
           };
           const sides = cleanSet(currentSideState.sides, sideIndex, side);
           return { sides };
@@ -788,7 +840,14 @@ export default class Compress extends Component<Props, State> {
 
   render(
     { onBack }: Props,
-    { loading, sides, source, mobileView, preprocessorState }: State,
+    {
+      loading,
+      sides,
+      source,
+      mobileView,
+      preprocessorState,
+      filenameSettings,
+    }: State,
   ) {
     const [leftSide, rightSide] = sides;
     const [leftImageData, rightImageData] = sides.map((i) => i.data);
@@ -803,6 +862,8 @@ export default class Compress extends Component<Props, State> {
         onEncoderTypeChange={this.onEncoderTypeChange}
         onEncoderOptionsChange={this.onEncoderOptionsChange}
         onProcessorOptionsChange={this.onProcessorOptionsChange}
+        filenameSettings={filenameSettings}
+        onFilenameSettingsChange={this.onFilenameSettingsChange}
         onResetSettings={this.onResetSettings}
       />
     ));

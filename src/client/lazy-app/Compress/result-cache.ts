@@ -1,5 +1,6 @@
 import { EncoderState, ProcessorState } from '../feature-meta';
 import { shallowEqual } from '../util';
+import { FilenameSettings, filenameSettingsEqual } from '../filename-settings';
 
 interface CacheResult {
   processed: ImageData;
@@ -10,6 +11,7 @@ interface CacheResult {
 interface CacheEntry extends CacheResult {
   processorState: ProcessorState;
   encoderState: EncoderState;
+  filenameSettings: FilenameSettings;
   preprocessed: ImageData;
 }
 
@@ -29,6 +31,7 @@ export default class ResultCache {
     preprocessed: ImageData,
     processorState: ProcessorState,
     encoderState: EncoderState,
+    filenameSettings: FilenameSettings,
   ): CacheResult | undefined {
     const matchingIndex = this._entries.findIndex((entry) => {
       // Check for quick exits:
@@ -49,6 +52,10 @@ export default class ResultCache {
 
       // Check detailed encoder options
       if (!shallowEqual(encoderState.options, entry.encoderState.options)) {
+        return false;
+      }
+
+      if (!filenameSettingsEqual(filenameSettings, entry.filenameSettings)) {
         return false;
       }
 

@@ -18,6 +18,12 @@ import {
   compressImage,
   SourceImage,
 } from '../util/image-pipeline';
+import {
+  FilenameSettings,
+  createOutputFilename,
+  defaultFilenameSettings,
+  normalizeFilenameSettings,
+} from '../filename-settings';
 import type SnackBarElement from 'shared/custom-els/snack-bar';
 import prettyBytes from '../Compress/Results/pretty-bytes';
 import Toggle from '../Compress/Options/Toggle';
@@ -56,6 +62,7 @@ interface State {
   items: BatchItem[];
   encoderState: EncoderState;
   processorState: ProcessorState;
+  filenameSettings: FilenameSettings;
   isProcessing: boolean;
   supportedEncoderMap?: typeof encoderMap;
   resizeDimension: ResizeDimension;
@@ -100,6 +107,7 @@ export default class BatchCompress extends Component<Props, State> {
 
     let encoderState = this.defaultEncoderState;
     let processorState = defaultProcessorState;
+    let filenameSettings = defaultFilenameSettings;
     let resizeDimension: ResizeDimension = 'width';
     let resizeValue = 1920;
 
@@ -110,6 +118,9 @@ export default class BatchCompress extends Component<Props, State> {
         if (parsed.encoderState)
           encoderState = parsed.encoderState as EncoderState;
         if (parsed.processorState) processorState = parsed.processorState;
+        if (parsed.filenameSettings) {
+          filenameSettings = normalizeFilenameSettings(parsed.filenameSettings);
+        }
         if (parsed.resizeDimension) resizeDimension = parsed.resizeDimension;
         if (parsed.resizeValue > 0) resizeValue = parsed.resizeValue;
       }
@@ -119,6 +130,7 @@ export default class BatchCompress extends Component<Props, State> {
       items,
       encoderState,
       processorState,
+      filenameSettings,
       isProcessing: false,
       resizeDimension,
       resizeValue,
@@ -141,6 +153,7 @@ export default class BatchCompress extends Component<Props, State> {
     if (
       prevState.encoderState !== this.state.encoderState ||
       prevState.processorState !== this.state.processorState ||
+      prevState.filenameSettings !== this.state.filenameSettings ||
       prevState.resizeDimension !== this.state.resizeDimension ||
       prevState.resizeValue !== this.state.resizeValue
     ) {
@@ -150,6 +163,7 @@ export default class BatchCompress extends Component<Props, State> {
           JSON.stringify({
             encoderState: this.state.encoderState,
             processorState: this.state.processorState,
+            filenameSettings: this.state.filenameSettings,
             resizeDimension: this.state.resizeDimension,
             resizeValue: this.state.resizeValue,
           }),
@@ -206,10 +220,48 @@ export default class BatchCompress extends Component<Props, State> {
     }));
   };
 
+  private handleFilenameLowercaseToggle = (event: Event) => {
+    this.setState((state) => ({
+      filenameSettings: normalizeFilenameSettings({
+        ...state.filenameSettings,
+        lowercase: (event.currentTarget as HTMLInputElement).checked,
+      }),
+    }));
+  };
+
+  private handleFilenameReplaceSpaceToggle = (event: Event) => {
+    this.setState((state) => ({
+      filenameSettings: normalizeFilenameSettings({
+        ...state.filenameSettings,
+        replaceSpaceWithUnderscore: (event.currentTarget as HTMLInputElement)
+          .checked,
+      }),
+    }));
+  };
+
+  private handleFilenamePrefixChange = (event: Event) => {
+    this.setState((state) => ({
+      filenameSettings: normalizeFilenameSettings({
+        ...state.filenameSettings,
+        prefix: (event.currentTarget as HTMLInputElement).value,
+      }),
+    }));
+  };
+
+  private handleFilenameSuffixChange = (event: Event) => {
+    this.setState((state) => ({
+      filenameSettings: normalizeFilenameSettings({
+        ...state.filenameSettings,
+        suffix: (event.currentTarget as HTMLInputElement).value,
+      }),
+    }));
+  };
+
   private handleResetSettings = () => {
     this.setState({
       encoderState: this.defaultEncoderState,
       processorState: defaultProcessorState,
+      filenameSettings: defaultFilenameSettings,
       resizeDimension: 'width',
       resizeValue: 1920,
     });
@@ -245,7 +297,7 @@ export default class BatchCompress extends Component<Props, State> {
       }),
     }));
 
-    const { encoderState, processorState } = this.state;
+    const { encoderState, processorState, filenameSettings } = this.state;
 
     for (let i = 0; i < this.state.items.length; i++) {
       if (signal.aborted) break;
@@ -319,6 +371,7 @@ export default class BatchCompress extends Component<Props, State> {
           processed,
           encoderState,
           item.file.name,
+          filenameSettings,
           this.workerBridge,
         );
 
@@ -417,6 +470,7 @@ export default class BatchCompress extends Component<Props, State> {
       items,
       encoderState,
       processorState,
+      filenameSettings,
       isProcessing,
       supportedEncoderMap,
       resizeDimension,
@@ -436,6 +490,18 @@ export default class BatchCompress extends Component<Props, State> {
     const encoder = encoderMap[encoderState.type];
     const EncoderOptionComponent =
       'Options' in encoder ? encoder.Options : undefined;
+    const previewSourceFilename =
+      items.length > 0 ? items[0].file.name : 'My Image.jpg';
+    const previewFileName = createOutputFilename(
+      previewSourceFilename,
+      encoder.meta.extension,
+      filenameSettings,
+    );
+    const showFilenamePreview =
+      filenameSettings.lowercase ||
+      filenameSettings.replaceSpaceWithUnderscore ||
+      filenameSettings.prefix.trim() !== '' ||
+      filenameSettings.suffix.trim() !== '';
 
     return (
       <div class={style.batch}>
@@ -486,7 +552,7 @@ export default class BatchCompress extends Component<Props, State> {
               </select>
             ) : (
               <select class={style.sidebarSelect} disabled>
-                <option>Loading…</option>
+                <option>Loading...</option>
               </select>
             )}
           </div>
@@ -500,6 +566,60 @@ export default class BatchCompress extends Component<Props, State> {
               />
             </div>
           )}
+
+          <div class={style.sidebarSection}>
+            <h3>Filename</h3>
+
+            <label class={style.sidebarToggleLabel}>
+              <span>Lowercase</span>
+              <Toggle
+                checked={filenameSettings.lowercase}
+                onChange={this.handleFilenameLowercaseToggle}
+              />
+            </label>
+
+            <label class={style.sidebarToggleLabel}>
+              <span>Spaces to _</span>
+              <Toggle
+                checked={filenameSettings.replaceSpaceWithUnderscore}
+                onChange={this.handleFilenameReplaceSpaceToggle}
+              />
+            </label>
+
+            <div class={style.resizeRow}>
+              <label class={style.resizeLabel} htmlFor="batch-prefix">
+                Prefix
+              </label>
+              <div class={style.resizeInputWrap}>
+                <input
+                  id="batch-prefix"
+                  class={style.resizeInput}
+                  value={filenameSettings.prefix}
+                  onInput={this.handleFilenamePrefixChange}
+                />
+              </div>
+            </div>
+
+            <div class={style.resizeRow}>
+              <label class={style.resizeLabel} htmlFor="batch-suffix">
+                Suffix
+              </label>
+              <div class={style.resizeInputWrap}>
+                <input
+                  id="batch-suffix"
+                  class={style.resizeInput}
+                  value={filenameSettings.suffix}
+                  onInput={this.handleFilenameSuffixChange}
+                />
+              </div>
+            </div>
+
+            {showFilenamePreview ? (
+              <p class={style.filenamePreview}>
+                Preview: <strong>{previewFileName}</strong>
+              </p>
+            ) : null}
+          </div>
 
           <div class={style.sidebarSection}>
             <label class={style.sidebarToggleLabel}>
@@ -626,6 +746,8 @@ export default class BatchCompress extends Component<Props, State> {
                 <BatchItemRow
                   key={item.id}
                   item={item}
+                  filenameSettings={filenameSettings}
+                  encoderExtension={encoder.meta.extension}
                   onRemove={this.handleRemoveItem}
                 />
               ))}
@@ -639,6 +761,8 @@ export default class BatchCompress extends Component<Props, State> {
 
 interface BatchItemRowProps {
   item: BatchItem;
+  filenameSettings: FilenameSettings;
+  encoderExtension: string;
   onRemove: (id: string) => void;
 }
 
@@ -647,8 +771,20 @@ class BatchItemRow extends Component<BatchItemRowProps> {
     this.props.onRemove(this.props.item.id);
   };
 
-  render({ item }: BatchItemRowProps) {
+  render({ item, filenameSettings, encoderExtension }: BatchItemRowProps) {
     const originalPretty = prettyBytes(item.originalSize);
+    const previewFileName = createOutputFilename(
+      item.file.name,
+      encoderExtension,
+      filenameSettings,
+    );
+    const showFilenamePreview =
+      filenameSettings.lowercase ||
+      filenameSettings.replaceSpaceWithUnderscore ||
+      filenameSettings.prefix.trim() !== '' ||
+      filenameSettings.suffix.trim() !== '';
+    const compressedPretty =
+      item.compressedSize != null ? prettyBytes(item.compressedSize) : null;
     const savings =
       item.compressedSize != null
         ? Math.round(
@@ -668,9 +804,9 @@ class BatchItemRow extends Component<BatchItemRowProps> {
 
     const statusLabel = {
       pending: 'Pending',
-      decoding: 'Decodingâ€¦',
-      processing: 'Processingâ€¦',
-      encoding: 'Encodingâ€¦',
+      decoding: 'Decoding...',
+      processing: 'Processing...',
+      encoding: 'Encoding...',
       done: 'Done',
       error: 'Error',
     }[item.status];
@@ -698,23 +834,26 @@ class BatchItemRow extends Component<BatchItemRowProps> {
             <span>
               {originalPretty.value} {originalPretty.unit}
             </span>
-            {item.compressedSize != null && (
-              <>
-                <span class={style.itemSizeArrow}>â†’</span>
-                <span class={style.itemSizeResult}>
-                  {prettyBytes(item.compressedSize).value}{' '}
-                  {prettyBytes(item.compressedSize).unit}
-                </span>
-              </>
-            )}
+            <span class={style.itemSizeArrow}>-&gt;</span>
+            <span class={style.itemSizeResult}>
+              {compressedPretty
+                ? `${compressedPretty.value} ${compressedPretty.unit}`
+                : 'pending'}
+            </span>
             {savings !== null && (
               <span
                 class={savings >= 0 ? style.savings : style.savingsNegative}
               >
-                {savings >= 0 ? `â†“${savings}%` : `â†‘${Math.abs(savings)}%`}
+                {savings >= 0 ? `-${savings}%` : `+${Math.abs(savings)}%`}
               </span>
             )}
           </div>
+          {showFilenamePreview ? (
+            <div class={style.itemAfterFilename}>
+              <span class={style.itemSizeArrow}>-&gt;</span>
+              <span class={style.itemFilenameValue}>{previewFileName}</span>
+            </div>
+          ) : null}
           {savings !== null && (
             <div class={style.itemSavingsBar}>
               <div

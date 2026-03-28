@@ -12,6 +12,7 @@ import {
   ProcessorState,
   encoderMap,
 } from '../feature-meta';
+import { FilenameSettings, createOutputFilename } from '../filename-settings';
 import WorkerBridge from '../worker-bridge';
 import { resize } from 'features/processors/resize/client';
 
@@ -97,6 +98,7 @@ export async function compressImage(
   image: ImageData,
   encodeData: EncoderState,
   sourceFilename: string,
+  filenameSettings: FilenameSettings,
   workerBridge: WorkerBridge,
 ): Promise<File> {
   assertSignal(signal);
@@ -110,10 +112,11 @@ export async function compressImage(
   );
 
   const type: ImageMimeTypes = encoder.meta.mimeType;
-
-  return new File(
-    [compressedData],
-    sourceFilename.replace(/.[^.]*$/, `.${encoder.meta.extension}`),
-    { type },
+  const fileName = createOutputFilename(
+    sourceFilename,
+    encoder.meta.extension,
+    filenameSettings,
   );
+
+  return new File([compressedData], fileName, { type });
 }

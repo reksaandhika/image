@@ -12,6 +12,11 @@ import {
   ProcessorOptions,
   encoderMap,
 } from '../../feature-meta';
+import {
+  FilenameSettings,
+  normalizeFilenameSettings,
+  createOutputFilename,
+} from '../../filename-settings';
 import Expander from './Expander';
 import Toggle from './Toggle';
 import Select from './Select';
@@ -24,9 +29,11 @@ interface Props {
   source?: SourceImage;
   encoderState?: EncoderState;
   processorState: ProcessorState;
+  filenameSettings: FilenameSettings;
   onEncoderTypeChange(index: 0 | 1, newType: OutputType): void;
   onEncoderOptionsChange(index: 0 | 1, newOptions: EncoderOptions): void;
   onProcessorOptionsChange(index: 0 | 1, newOptions: ProcessorState): void;
+  onFilenameSettingsChange(newSettings: FilenameSettings): void;
   onResetSettings(index: 0 | 1): void;
 }
 
@@ -102,14 +109,61 @@ export default class Options extends Component<Props, State> {
     this.props.onResetSettings(this.props.index);
   };
 
+  private onFilenameLowercaseChange = (event: Event) => {
+    this.props.onFilenameSettingsChange(
+      normalizeFilenameSettings({
+        ...this.props.filenameSettings,
+        lowercase: (event.currentTarget as HTMLInputElement).checked,
+      }),
+    );
+  };
+
+  private onFilenameReplaceSpaceChange = (event: Event) => {
+    this.props.onFilenameSettingsChange(
+      normalizeFilenameSettings({
+        ...this.props.filenameSettings,
+        replaceSpaceWithUnderscore: (event.currentTarget as HTMLInputElement)
+          .checked,
+      }),
+    );
+  };
+
+  private onFilenamePrefixChange = (event: Event) => {
+    this.props.onFilenameSettingsChange(
+      normalizeFilenameSettings({
+        ...this.props.filenameSettings,
+        prefix: (event.currentTarget as HTMLInputElement).value,
+      }),
+    );
+  };
+
+  private onFilenameSuffixChange = (event: Event) => {
+    this.props.onFilenameSettingsChange(
+      normalizeFilenameSettings({
+        ...this.props.filenameSettings,
+        suffix: (event.currentTarget as HTMLInputElement).value,
+      }),
+    );
+  };
+
   render(
-    { source, encoderState, processorState, index }: Props,
+    { source, encoderState, processorState, index, filenameSettings }: Props,
     { supportedEncoderMap }: State,
   ) {
     const isOriginalSide = index === 0;
     const encoder = encoderState && encoderMap[encoderState.type];
     const EncoderOptionComponent =
       encoder && 'Options' in encoder ? encoder.Options : undefined;
+    const previewFileName =
+      source && encoder
+        ? createOutputFilename(
+            source.file.name,
+            encoder.meta.extension,
+            filenameSettings,
+          )
+        : source
+        ? source.file.name
+        : '';
 
     return (
       <div
@@ -168,6 +222,57 @@ export default class Options extends Component<Props, State> {
             </Expander>
 
             <h3 class={style.optionsTitle}>Compress</h3>
+
+            <section class={style.optionsSection}>
+              <label class={style.optionToggle}>
+                Lowercase filename
+                <Toggle
+                  checked={filenameSettings.lowercase}
+                  onChange={this.onFilenameLowercaseChange}
+                />
+              </label>
+
+              <label class={style.optionToggle}>
+                Replace spaces with _
+                <Toggle
+                  checked={filenameSettings.replaceSpaceWithUnderscore}
+                  onChange={this.onFilenameReplaceSpaceChange}
+                />
+              </label>
+
+              <label
+                class={style.optionTextFirst}
+                htmlFor={`filename-prefix-${index}`}
+              >
+                Prefix
+                <input
+                  id={`filename-prefix-${index}`}
+                  class={style.textField}
+                  value={filenameSettings.prefix}
+                  onInput={this.onFilenamePrefixChange}
+                />
+              </label>
+
+              <label
+                class={style.optionTextFirst}
+                htmlFor={`filename-suffix-${index}`}
+              >
+                Suffix
+                <input
+                  id={`filename-suffix-${index}`}
+                  class={style.textField}
+                  value={filenameSettings.suffix}
+                  onInput={this.onFilenameSuffixChange}
+                />
+              </label>
+
+              {previewFileName ? (
+                <div class={style.filenamePreview}>
+                  <span>Preview</span>
+                  <strong>{previewFileName}</strong>
+                </div>
+              ) : null}
+            </section>
 
             <section class={`${style.optionOneCell} ${style.optionsSection}`}>
               {supportedEncoderMap ? (
