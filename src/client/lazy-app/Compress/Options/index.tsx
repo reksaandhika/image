@@ -221,7 +221,7 @@ export default class Options extends Component<Props, State> {
               )}
             </Expander>
 
-            <h3 class={style.optionsTitle}>Compress</h3>
+            <h3 class={style.optionsTitle}>Filename</h3>
 
             <section class={style.optionsSection}>
               <label class={style.optionToggle}>
@@ -273,6 +273,8 @@ export default class Options extends Component<Props, State> {
                 </div>
               ) : null}
             </section>
+
+            <h3 class={style.optionsTitle}>Compress</h3>
 
             <section class={`${style.optionOneCell} ${style.optionsSection}`}>
               {supportedEncoderMap ? (
