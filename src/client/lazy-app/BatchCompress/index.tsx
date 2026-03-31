@@ -299,10 +299,13 @@ export default class BatchCompress extends Component<Props, State> {
 
     const { encoderState, processorState, filenameSettings } = this.state;
 
-    for (let i = 0; i < this.state.items.length; i++) {
+    // Snapshot items so deletions during processing don't affect loop bounds
+    const itemsToProcess = this.state.items.slice();
+
+    for (let i = 0; i < itemsToProcess.length; i++) {
       if (signal.aborted) break;
 
-      const item = this.state.items[i];
+      const item = itemsToProcess[i];
 
       try {
         // Decode
@@ -333,10 +336,10 @@ export default class BatchCompress extends Component<Props, State> {
 
           if (resizeDimension === 'width') {
             tgtW = resizeValue;
-            tgtH = Math.round(resizeValue / aspect);
+            tgtH = Math.max(1, Math.round(resizeValue / aspect));
           } else {
             tgtH = resizeValue;
-            tgtW = Math.round(resizeValue * aspect);
+            tgtW = Math.max(1, Math.round(resizeValue * aspect));
           }
 
           // Skip resize if image is already smaller or equal
