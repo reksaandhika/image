@@ -57,12 +57,22 @@ export default class Output extends Component<Props, State> {
   canvasRight?: HTMLCanvasElement;
   pinchZoomLeft?: PinchZoom;
   pinchZoomRight?: PinchZoom;
+  twoUpEl?: Element;
   scaleInput?: HTMLInputElement;
   retargetedEvents = new WeakSet<Event>();
 
   componentDidMount() {
     const leftDraw = this.leftDrawable();
     const rightDraw = this.rightDrawable();
+
+    // Register wheel event listener with passive: false so event.preventDefault() works,
+    // preventing the page from scrolling while zooming the image.
+    if (this.twoUpEl) {
+      this.twoUpEl.addEventListener('wheel', this.onRetargetableEvent, {
+        capture: true,
+        passive: false,
+      });
+    }
 
     // Reset the pinch zoom, which may have an position set from the previous view, after pressing
     // the back button.
@@ -79,6 +89,12 @@ export default class Output extends Component<Props, State> {
     if (this.canvasRight && rightDraw) {
       drawDataToCanvas(this.canvasRight, rightDraw);
     }
+  }
+
+  componentWillUnmount() {
+    this.twoUpEl?.removeEventListener('wheel', this.onRetargetableEvent, {
+      capture: true,
+    });
   }
 
   componentDidUpdate(prevProps: Props, prevState: State) {
@@ -279,8 +295,10 @@ export default class Output extends Component<Props, State> {
           <two-up
             legacy-clip-compat
             class={style.twoUp}
+            ref={linkRef(this, 'twoUpEl')}
             orientation={mobileView ? 'vertical' : 'horizontal'}
             // Event redirecting. See onRetargetableEvent.
+            // Wheel is registered manually in componentDidMount with passive:false.
             onTouchStartCapture={this.onRetargetableEvent}
             onTouchEndCapture={this.onRetargetableEvent}
             onTouchMoveCapture={this.onRetargetableEvent}
@@ -290,7 +308,6 @@ export default class Output extends Component<Props, State> {
               isSafari ? undefined : this.onRetargetableEvent
             }
             onMouseDownCapture={this.onRetargetableEvent}
-            onWheelCapture={this.onRetargetableEvent}
           >
             <pinch-zoom
               class={style.pinchZoom}

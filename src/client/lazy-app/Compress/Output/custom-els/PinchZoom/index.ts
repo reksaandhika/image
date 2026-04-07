@@ -125,7 +125,9 @@ export default class PinchZoom extends HTMLElement {
       avoidPointerEvents: isSafari,
     });
 
-    this.addEventListener('wheel', (event) => this._onWheel(event));
+    this.addEventListener('wheel', (event) => this._onWheel(event), {
+      passive: false,
+    });
   }
 
   connectedCallback() {
