@@ -67,10 +67,12 @@ export default class Output extends Component<Props, State> {
 
     // Register wheel event listener with passive: false so event.preventDefault() works,
     // preventing the page from scrolling while zooming the image.
-    this.twoUpEl!.addEventListener('wheel', this.onRetargetableEvent, {
-      capture: true,
-      passive: false,
-    });
+    if (this.twoUpEl) {
+      this.twoUpEl.addEventListener('wheel', this.onRetargetableEvent, {
+        capture: true,
+        passive: false,
+      });
+    }
 
     // Reset the pinch zoom, which may have an position set from the previous view, after pressing
     // the back button.
